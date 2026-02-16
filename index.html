@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>除夕快乐 - 烟花抽奖页</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+
+        /* 全屏烟花背景容器 */
+        #fireworks-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            z-index: -1;
+        }
+
+        /* 页面主体居中 */
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 核心礼盒弹窗卡片 */
+        .gift-card {
+            width: 320px;
+            height: 360px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            padding: 50px 30px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 顶部渐变图标 */
+        .gift-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1);
+            border-radius: 12px;
+            margin: 0 auto 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        /* 文字样式 */
+        .card-title {
+            font-size: 24px;
+            color: #333333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .card-desc {
+            font-size: 15px;
+            color: #666666;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        /* 紫色按钮 */
+        .open-btn {
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 17px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .open-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+        }
+
+        /* 结果弹窗（默认隐藏） */
+        .result-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .result-content {
+            width: 300px;
+            background: white;
+            border-radius: 16px;
+            padding: 35px 25px;
+            text-align: center;
+            animation: popIn 0.4s ease;
+        }
+
+        /* 中奖弹窗特殊样式 */
+        .result-content.win {
+            background: linear-gradient(135deg, #fff8e1, #fff3cd);
+            border: 2px solid #ffc107;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .result-icon {
+            font-size: 50px;
+            margin-bottom: 20px;
+        }
+
+        .result-text {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        /* 中奖文字颜色 */
+        .result-text.win-text {
+            color: #ff8c00;
+        }
+
+        .close-btn {
+            padding: 10px 25px;
+            background: #6c5ce7;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.2s ease;
+        }
+
+        /* 中奖按钮特殊样式 */
+        .close-btn.win-btn {
+            background: linear-gradient(90deg, #ffc107, #ff8c00);
+        }
+
+        .close-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- 烟花背景容器 -->
+    <div id="fireworks-container"></div>
+
+    <!-- 核心礼盒弹窗 -->
+    <div class="gift-card">
+        <div class="gift-icon">🎁</div>
+        <h3 class="card-title">除夕快乐</h3>
+        <p class="card-desc">为您精心准备了一份特别的除夕礼物</p>
+        <button class="open-btn">开启礼物</button>
+    </div>
+
+    <!-- 结果弹窗 -->
+    <div class="result-modal" id="resultModal">
+        <div class="result-content" id="resultContent">
+            <div class="result-icon" id="resultIcon">😥</div>
+            <div class="result-text" id="resultText">很遗憾，本次未中奖</div>
+            <button class="close-btn" id="closeResult">知道了</button>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量：控制中奖时烟花密度
+        let isWin = false;
+        
+        // 1. 抽奖逻辑（1%概率中奖）
+        const openBtn = document.querySelector('.open-btn');
+        const resultModal = document.getElementById('resultModal');
+        const closeResult = document.getElementById('closeResult');
+        const resultContent = document.getElementById('resultContent');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultText = document.getElementById('resultText');
+
+        openBtn.addEventListener('click', () => {
+            // 生成0-99的随机数，1%概率（数字99）中奖
+            const randomNum = Math.floor(Math.random() * 100);
+            isWin = randomNum === 99;
+
+            // 更新弹窗样式和内容
+            if (isWin) {
+                // 中奖样式
+                resultContent.classList.add('win');
+                resultIcon.textContent = '🎉';
+                resultText.textContent = '恭喜你，中奖啦！';
+                resultText.classList.add('win-text');
+                closeResult.classList.add('win-btn');
+            } else {
+                // 未中奖样式
+                resultContent.classList.remove('win');
+                resultIcon.textContent = '😥';
+                resultText.textContent = '很遗憾，本次未中奖';
+                resultText.classList.remove('win-text');
+                closeResult.classList.remove('win-btn');
+            }
+            
+            // 显示弹窗
+            resultModal.style.display = 'flex';
+        });
+
+        closeResult.addEventListener('click', () => {
+            resultModal.style.display = 'none';
+            // 重置中奖状态
+            isWin = false;
+        });
+
+        // 2. 全屏烟花效果（中奖时更密集）
+        (function() {
+            const container = document.getElementById('fireworks-container');
+            let particles = [];
+
+            function createFirework(x, y) {
+                const colors = ['#ff0043', '#ffdd00', '#00ff88', '#00aaff', '#ff00ff'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                // 中奖时烟花粒子数量翻倍
+                const particleCount = isWin ? 160 : 80;
+                for (let i = 0; i < particleCount; i++) {
+                    particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * (isWin ? 8 : 6),
+                        vy: (Math.random() - 0.5) * (isWin ? 8 : 6),
+                        life: 1,
+                        decay: 0.02,
+                        color: color
+                    });
+                }
+            }
+
+            function loop() {
+                container.innerHTML = '';
+                // 中奖时烟花出现概率提升3倍
+                const fireworkProb = isWin ? 0.15 : 0.05;
+                if (Math.random() < fireworkProb) {
+                    createFirework(
+                        Math.random() * window.innerWidth,
+                        Math.random() * window.innerHeight * 0.7
+                    );
+                }
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.02;
+                    p.life -= p.decay;
+                    if (p.life <= 0) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                    const dot = document.createElement('div');
+                    dot.style.position = 'absolute';
+                    dot.style.left = p.x + 'px';
+                    dot.style.top = p.y + 'px';
+                    dot.style.width = '2px';
+                    dot.style.height = '2px';
+                    dot.style.background = p.color;
+                    dot.style.borderRadius = '50%';
+                    dot.style.opacity = p.life;
+                    container.appendChild(dot);
+                }
+                requestAnimationFrame(loop);
+            }
+            loop();
+        })();
+    </script>
+</body>
+</html>
